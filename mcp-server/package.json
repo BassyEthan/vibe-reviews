@@ -1,0 +1,46 @@
+{
+  "name": "@vibe-reviews/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Vibe-Reviews semantic search and discovery",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "tsx test/demo.ts",
+    "chat": "tsx src/chatgpt-cli.ts",
+    "lint": "eslint src --ext .ts",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "semantic-search",
+    "restaurant-discovery",
+    "rag"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@pinecone-database/pinecone": "^3.0.3",
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^16.4.7",
+    "openai": "^4.67.3",
+    "prisma": "^5.22.0",
+    "undici": "^6.23.0",
+    "winston": "^3.17.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

@@ -1,0 +1,163 @@
+// Prisma Schema for Vibe-Reviews Foundation Architecture
+// Database: PostgreSQL
+// ORM: Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// PLACES - Permanent Cache (Foursquare Data)
+// ============================================
+
+model Place {
+  id              String   @id @default(uuid())
+  fsq_place_id    String   @unique  // Foursquare unique ID (external)
+  name            String
+  latitude        Float
+  longitude       Float
+  address         String
+  locality        String            // "San Francisco"
+  region          String            // "CA"
+  categories      String[]          // ["Restaurant", "Italian"]
+
+  // Timestamps
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  // Relations
+  photos          Photo[]
+  reviews         Review[]
+  enrichment_jobs EnrichmentJob[]
+
+  @@index([fsq_place_id])
+  @@index([locality, region])
+  @@map("places")
+}
+
+// ============================================
+// PHOTOS - Permanent Cache (Google Places)
+// ============================================
+
+model Photo {
+  id                String   @id @default(uuid())
+  place_id          String
+  place             Place    @relation(fields: [place_id], references: [id], onDelete: Cascade)
+
+  // Provider data
+  provider          String   @default("google")  // "google", "foursquare"
+  external_photo_id String                        // Provider's photo ID
+  url               String                        // Full resolution URL
+  width             Int
+  height            Int
+
+  // Attribution (required by Google ToS)
+  attribution_text  String
+  attribution_url   String?
+  html_attribution  String?
+
+  // Timestamps
+  created_at        DateTime @default(now())
+
+  @@index([place_id])
+  @@unique([place_id, external_photo_id])  // Deduplication
+  @@map("photos")
+}
+
+// ============================================
+// REVIEWS - TTL Cache (30-90 days)
+// ============================================
+
+model Review {
+  id              String   @id @default(uuid())
+  place_id        String
+  place           Place    @relation(fields: [place_id], references: [id], onDelete: Cascade)
+
+  // Provider data
+  provider        String   @default("tripadvisor")  // "tripadvisor", "foursquare"
+  external_review_id String                         // Provider's review ID
+  text            String
+  rating          Float
+  author          String
+  published_date  DateTime
+  language        String   @default("en")
+  helpful_votes   Int      @default(0)
+
+  // TTL metadata
+  created_at      DateTime @default(now())
+  expires_at      DateTime  // Set to created_at + 30-90 days
+  is_expired      Boolean  @default(false)  // Computed field for queries
+
+  @@index([place_id])
+  @@index([expires_at])
+  @@index([is_expired, place_id])
+  @@unique([place_id, external_review_id])  // Deduplication
+  @@map("reviews")
+}
+
+// ============================================
+// ENRICHMENT JOBS - Background Work Tracker
+// ============================================
+
+enum JobType {
+  FETCH_PHOTOS
+  FETCH_REVIEWS
+  GENERATE_EMBEDDINGS
+}
+
+enum JobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model EnrichmentJob {
+  id              String    @id @default(uuid())
+  place_id        String
+  place           Place     @relation(fields: [place_id], references: [id], onDelete: Cascade)
+
+  // Job metadata
+  job_type        JobType
+  status          JobStatus @default(PENDING)
+  priority        Int       @default(0)  // Higher = more important
+
+  // Retry logic
+  attempts        Int       @default(0)
+  max_attempts    Int       @default(3)
+  last_error      String?
+
+  // Timestamps
+  created_at      DateTime  @default(now())
+  started_at      DateTime?
+  completed_at    DateTime?
+  next_retry_at   DateTime?
+
+  @@index([status, priority, created_at])
+  @@index([place_id, job_type])
+  @@map("enrichment_jobs")
+}
+
+// ============================================
+// PROVIDER RATE LIMITS - Track API usage
+// ============================================
+
+model ProviderRateLimit {
+  id              String   @id @default(uuid())
+  provider        String   @unique  // "foursquare", "google", "tripadvisor"
+
+  // Rate limiting
+  requests_today  Int      @default(0)
+  daily_limit     Int
+  window_start    DateTime @default(now())
+
+  // Timestamps
+  updated_at      DateTime @updatedAt
+
+  @@map("provider_rate_limits")
+}
