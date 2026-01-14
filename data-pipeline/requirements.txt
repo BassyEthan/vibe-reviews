@@ -1,0 +1,26 @@
+# Core dependencies for Phase 1: Infrastructure & Data Pipeline
+pinecone>=3.0.0
+openai>=1.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+ftfy
+regex
+tqdm
+
+# CLIP - OpenAI's Contrastive Language-Image Pre-training
+git+https://github.com/openai/CLIP.git
+
+# Data scraping and processing
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+Pillow>=10.0.0
+aiohttp>=3.9.0
+
+# Environment management
+python-dotenv>=1.0.0
+
+# Database
+psycopg2-binary>=2.9.0
+
+# Logging and utilities
+structlog>=23.0.0
